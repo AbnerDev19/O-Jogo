@@ -4,15 +4,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jogo do Impostor - Master Edition</title>
+    <title>Jogo do Impostor - Ultimate Expanded</title>
     <style>
          :root {
             --bg-color: #1a1a1a;
             --card-bg: #2d2d2d;
             --text-color: #ffffff;
-            /* Amarelo mais escuro conforme solicitado */
+            /* Amarelo Escuro Solicitado */
             --primary-color: #e6b800;
             --primary-hover: #c9a000;
+            --danger-color: #ff5555;
+            --success-color: #4caf50;
         }
         
         body {
@@ -54,9 +56,11 @@
             margin-bottom: 5px;
             color: #ccc;
             font-size: 0.9rem;
+            font-weight: 600;
         }
         
-        input,
+        input[type="number"],
+        input[type="text"],
         select {
             width: 100%;
             padding: 12px;
@@ -69,15 +73,33 @@
             box-sizing: border-box;
             outline: none;
         }
+        /* Checkbox Customizado */
         
-        input:focus,
-        select:focus {
-            border-color: var(--primary-color);
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            background: #333;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        
+        .checkbox-container input {
+            width: auto;
+            margin: 0 10px 0 0;
+            transform: scale(1.3);
+            cursor: pointer;
+        }
+        
+        .checkbox-container span {
+            font-size: 0.9rem;
+            color: #fff;
         }
         
         button {
             width: 100%;
-            padding: 12px;
+            padding: 14px;
             background-color: var(--primary-color);
             color: #1a1a1a;
             border: none;
@@ -85,12 +107,16 @@
             font-size: 1.1rem;
             font-weight: bold;
             cursor: pointer;
-            transition: background 0.3s;
+            transition: background 0.3s, transform 0.1s;
             margin-top: 10px;
         }
         
         button:hover {
             background-color: var(--primary-hover);
+        }
+        
+        button:active {
+            transform: scale(0.98);
         }
         
         button.secondary {
@@ -113,22 +139,25 @@
         }
         
         .big-text {
-            font-size: 2rem;
+            font-size: 1.8rem;
             font-weight: bold;
             color: var(--primary-color);
             margin: 2rem 0;
             word-wrap: break-word;
-            line-height: 1.2;
+            line-height: 1.3;
         }
         
-        .category-badge {
-            display: inline-block;
-            background: #444;
-            padding: 4px 10px;
-            border-radius: 15px;
-            font-size: 0.8rem;
-            color: #ccc;
-            margin-bottom: 1rem;
+        .secret-reveal {
+            background: #222;
+            border: 1px solid var(--danger-color);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .secret-reveal h3 {
+            color: var(--danger-color);
+            margin-top: 0;
         }
         
         @keyframes fadeIn {
@@ -167,7 +196,10 @@
                     <option value="games">🎮 Jogos</option>
                     <option value="food">🍔 Comidas</option>
                     <option value="places">🌍 Lugares</option>
-                    <option value="objects">💡 Objetos & Coisas</option>
+                    <option value="objects">💡 Objetos</option>
+                    <option value="brands">🏷️ Marcas</option>
+                    <option value="nature">🌿 Natureza</option>
+                    <option value="professions">💼 Profissões</option>
                     <option value="questions">❓ Perguntas</option>
                 </select>
             </div>
@@ -177,6 +209,11 @@
                 <input type="text" id="custom-word" placeholder="Ex: Praia">
                 <label>Palavra do Impostor (Opcional):</label>
                 <input type="text" id="custom-impostor" placeholder="Ex: Piscina (ou deixe vazio)">
+            </div>
+
+            <div class="checkbox-container" onclick="toggleCheckbox('moderator-check')">
+                <input type="checkbox" id="moderator-check">
+                <span>Modo Moderador (Líder vê o impostor no final)</span>
             </div>
 
             <button onclick="startGame()">Iniciar Jogo</button>
@@ -196,10 +233,29 @@
             <button onclick="nextPlayer()">Esconder e Passar</button>
         </div>
 
+        <div id="leader-reveal-screen" class="screen">
+            <h2 style="color: var(--primary-color);">Tela do Líder</h2>
+            <p>Pegue o celular de volta. O jogo está configurado.</p>
+
+            <div class="secret-reveal">
+                <h3>⚠️ Informação Secreta</h3>
+                <p>O Impostor é o: <strong id="leader-impostor-id" style="font-size:1.2rem">Jogador X</strong></p>
+                <p>Palavra dos Inocentes: <span id="leader-word-normal"></span></p>
+            </div>
+
+            <p style="font-size:0.8rem; color:#aaa;">Não deixe os outros verem esta tela!</p>
+            <button onclick="finishSetup()">Iniciar Debate</button>
+        </div>
+
         <div id="game-screen" class="screen">
-            <h1>O Jogo Começou!</h1>
-            <span id="category-display" class="category-badge">Categoria: Geral</span>
-            <p>Debatam e votem em quem é o impostor.</p>
+            <h1>Debate Iniciado!</h1>
+            <p style="background:#333; padding:5px 10px; border-radius:15px; display:inline-block;">
+                Categoria: <span id="category-display">Geral</span>
+            </p>
+
+            <div class="big-text" style="font-size: 1.2rem; color: #fff; margin: 1rem 0;">
+                Descubram quem é o impostor!
+            </div>
 
             <div style="margin-top: 2rem; padding: 1rem; background: #333; border-radius: 8px;">
                 <p>Jogadores na rodada: <strong id="final-count"></strong></p>
@@ -210,51 +266,80 @@
     </div>
 
     <script>
-        // --- BANCO DE DADOS EXPANDIDO ---
-        // Estrutura: { normal: "X", impostor: "Y" } 
-        // Se impostor for "", ele não recebe palavra (Impostor Puro).
-
+        // --- BANCO DE DADOS MASSIVO E EXPANDIDO ---
         const database = {
-            movies: [{
-                n: "Harry Potter",
-                i: "Senhor dos Anéis"
-            }, {
-                n: "Star Wars",
-                i: "Star Trek"
-            }, {
-                n: "Marvel",
-                i: "DC Comics"
-            }, {
-                n: "Batman",
-                i: "Homem de Ferro"
-            }, {
-                n: "Homem Aranha",
-                i: "Superman"
-            }, {
-                n: "Titanic",
-                i: "Avatar"
-            }, {
-                n: "Shrek",
-                i: "Toy Story"
-            }, {
-                n: "Netflix",
-                i: "Prime Video"
-            }, {
-                n: "Friends",
-                i: "How I Met Your Mother"
-            }, {
-                n: "Breaking Bad",
-                i: "Better Call Saul"
-            }, {
-                n: "Os Vingadores",
-                i: "Liga da Justiça"
-            }, {
-                n: "Naruto",
-                i: "Dragon Ball"
-            }, {
-                n: "Game of Thrones",
-                i: "House of the Dragon"
-            }],
+            movies: [
+                // Clássicos Geek/Heroi
+                {
+                    n: "Harry Potter",
+                    i: "Senhor dos Anéis"
+                }, {
+                    n: "Star Wars",
+                    i: "Star Trek"
+                }, {
+                    n: "Vingadores",
+                    i: "Liga da Justiça"
+                }, {
+                    n: "Batman",
+                    i: "Homem de Ferro"
+                }, {
+                    n: "Homem Aranha",
+                    i: "Superman"
+                }, {
+                    n: "Deadpool",
+                    i: "Wolverine"
+                }, {
+                    n: "Matrix",
+                    i: "Exterminador do Futuro"
+                }, {
+                    n: "O Rei Leão",
+                    i: "Mogli"
+                }, {
+                    n: "Frozen",
+                    i: "Moana"
+                }, {
+                    n: "Shrek",
+                    i: "Toy Story"
+                },
+                // Séries e Pop Culture
+                {
+                    n: "Round 6 (Squid Game)",
+                    i: "La Casa de Papel"
+                }, {
+                    n: "Friends",
+                    i: "The Office"
+                }, {
+                    n: "Breaking Bad",
+                    i: "Narcos"
+                }, {
+                    n: "Stranger Things",
+                    i: "Dark"
+                }, {
+                    n: "Game of Thrones",
+                    i: "Vikings"
+                }, {
+                    n: "The Walking Dead",
+                    i: "The Last of Us"
+                }, {
+                    n: "Titanic",
+                    i: "Avatar"
+                }, {
+                    n: "Barbie",
+                    i: "Oppenheimer"
+                }, {
+                    n: "Velozes e Furiosos",
+                    i: "Carros (Pixar)"
+                }, {
+                    n: "Jogos Vorazes",
+                    i: "Maze Runner"
+                }, {
+                    n: "Homens de Preto",
+                    i: "Caça-Fantasmas"
+                }, {
+                    n: "Jurassic Park",
+                    i: "King Kong"
+                }
+            ],
             games: [{
                 n: "Minecraft",
                 i: "Roblox"
@@ -262,45 +347,100 @@
                 n: "PlayStation",
                 i: "Xbox"
             }, {
-                n: "League of Legends",
+                n: "LoL",
                 i: "Dota 2"
             }, {
-                n: "Counter-Strike",
+                n: "CS:GO",
                 i: "Valorant"
             }, {
                 n: "FIFA",
-                i: "PES (eFootball)"
+                i: "PES"
             }, {
-                n: "Mario",
+                n: "Mario Bros",
                 i: "Sonic"
             }, {
                 n: "Fortnite",
-                i: "PUBG"
+                i: "Free Fire"
             }, {
                 n: "GTA V",
                 i: "Red Dead Redemption"
             }, {
-                n: "Celular",
-                i: "PC Gamer"
-            }, {
                 n: "Among Us",
-                i: "Lobisomem"
+                i: "Detetive"
+            }, {
+                n: "Clash Royale",
+                i: "Brawl Stars"
+            }, {
+                n: "Candy Crush",
+                i: "Fruit Ninja"
             }, {
                 n: "God of War",
-                i: "Devil May Cry"
+                i: "Assassin's Creed"
             }, {
-                n: "Free Fire",
-                i: "Call of Duty Mobile"
+                n: "The Sims",
+                i: "SimCity"
+            }, {
+                n: "Tetris",
+                i: "Pac-Man"
             }],
-            food: [{
+            food: [
+                // Salgados
+                {
                     n: "Pizza",
                     i: "Lasanha"
                 }, {
                     n: "Hambúrguer",
                     i: "Cachorro Quente"
                 }, {
+                    n: "Coxinha",
+                    i: "Pastel"
+                }, {
+                    n: "Churrasco",
+                    i: "Feijoada"
+                }, {
+                    n: "Sushi",
+                    i: "Temaki"
+                }, {
+                    n: "Macarrão",
+                    i: "Nhoque"
+                }, {
+                    n: "Strogonoff",
+                    i: "Fricassé"
+                }, {
+                    n: "Ovo Frito",
+                    i: "Ovo Cozido"
+                }, {
+                    n: "Pão de Queijo",
+                    i: "Biscoito de Polvilho"
+                }, {
+                    n: "Tacos",
+                    i: "Burritos"
+                }, {
+                    n: "Pipoca",
+                    i: "Batata Frita"
+                }, {
+                    n: "Misto Quente",
+                    i: "Bauru"
+                },
+                // Doces e Bebidas
+                {
                     n: "Chocolate",
-                    i: "Doce de Leite"
+                    i: "Sorvete"
+                }, {
+                    n: "Pudim",
+                    i: "Gelatina"
+                }, {
+                    n: "Brigadeiro",
+                    i: "Beijinho"
+                }, {
+                    n: "Bolo de Cenoura",
+                    i: "Bolo de Chocolate"
+                }, {
+                    n: "Açaí",
+                    i: "Cupuaçu"
+                }, {
+                    n: "Churros",
+                    i: "Crepe"
                 }, {
                     n: "Coca-Cola",
                     i: "Pepsi"
@@ -308,30 +448,17 @@
                     n: "Café",
                     i: "Chá"
                 }, {
-                    n: "Churrasco",
-                    i: ""
-                }, // Impostor não sabe o tema
-                {
-                    n: "Sushi",
-                    i: "Sashimi"
+                    n: "Suco de Laranja",
+                    i: "Limonada"
                 }, {
-                    n: "Sorvete",
-                    i: "Açaí"
+                    n: "Cerveja",
+                    i: "Vinho"
                 }, {
-                    n: "Macarrão",
-                    i: "Nhoque"
+                    n: "Melancia",
+                    i: "Melão"
                 }, {
-                    n: "Brigadeiro",
-                    i: "Beijinho"
-                }, {
-                    n: "Coxinha",
-                    i: "Pastel"
-                }, {
-                    n: "Feijoada",
-                    i: ""
-                }, {
-                    n: "Pão de Queijo",
-                    i: "Croissant"
+                    n: "Uva",
+                    i: "Azeitona"
                 }
             ],
             places: [{
@@ -354,9 +481,9 @@
                 i: "Parque"
             }, {
                 n: "Brasil",
-                i: "Argentina"
+                i: "Portugal"
             }, {
-                n: "Estados Unidos",
+                n: "EUA",
                 i: "Inglaterra"
             }, {
                 n: "Lua",
@@ -365,11 +492,23 @@
                 n: "Quarto",
                 i: "Sala"
             }, {
-                n: "Banheiro",
-                i: "Cozinha"
+                n: "Cozinha",
+                i: "Banheiro"
             }, {
                 n: "Paris",
-                i: "Londres"
+                i: "Roma"
+            }, {
+                n: "Disney",
+                i: "Beto Carrero"
+            }, {
+                n: "Favela",
+                i: "Condomínio"
+            }, {
+                n: "Zoológico",
+                i: "Circo"
+            }, {
+                n: "Igreja",
+                i: "Museu"
             }],
             objects: [{
                 n: "Violão",
@@ -379,22 +518,19 @@
                 i: "Caneta"
             }, {
                 n: "Copo",
-                i: "Taça"
+                i: "Caneca"
             }, {
                 n: "Notebook",
-                i: "Tablet"
+                i: "Computador"
             }, {
                 n: "Tênis",
                 i: "Chinelo"
             }, {
                 n: "Relógio",
-                i: "Pulseira"
+                i: "Celular"
             }, {
                 n: "Ouro",
                 i: "Prata"
-            }, {
-                n: "Sol",
-                i: "Lua"
             }, {
                 n: "Cadeira",
                 i: "Sofá"
@@ -404,33 +540,207 @@
             }, {
                 n: "Avião",
                 i: "Helicóptero"
+            }, {
+                n: "Espelho",
+                i: "Vidro"
+            }, {
+                n: "Travesseiro",
+                i: "Almofada"
+            }, {
+                n: "Faca",
+                i: "Garfo"
+            }, {
+                n: "Chave",
+                i: "Cadeado"
+            }, {
+                n: "Guarda-Chuva",
+                i: "Capa de Chuva"
+            }, {
+                n: "Escova de Dentes",
+                i: "Pente"
+            }],
+            brands: [{
+                n: "Nike",
+                i: "Adidas"
+            }, {
+                n: "Apple",
+                i: "Samsung"
+            }, {
+                n: "McDonald's",
+                i: "Burger King"
+            }, {
+                n: "Coca-Cola",
+                i: "Guaraná"
+            }, {
+                n: "Ferrari",
+                i: "Lamborghini"
+            }, {
+                n: "Marvel",
+                i: "DC"
+            }, {
+                n: "Instagram",
+                i: "TikTok"
+            }, {
+                n: "Twitter (X)",
+                i: "Threads"
+            }, {
+                n: "Uber",
+                i: "99"
+            }, {
+                n: "Iphone",
+                i: "Xiaomi"
+            }, {
+                n: "Netflix",
+                i: "Amazon Prime"
+            }, {
+                n: "Globo",
+                i: "SBT"
+            }],
+            nature: [{
+                n: "Cachorro",
+                i: "Gato"
+            }, {
+                n: "Sol",
+                i: "Lua"
+            }, {
+                n: "Chuva",
+                i: "Neve"
+            }, {
+                n: "Mar",
+                i: "Rio"
+            }, {
+                n: "Leão",
+                i: "Tigre"
+            }, {
+                n: "Árvore",
+                i: "Flor"
+            }, {
+                n: "Fogo",
+                i: "Água"
+            }, {
+                n: "Dia",
+                i: "Noite"
+            }, {
+                n: "Tubarão",
+                i: "Golfinho"
+            }, {
+                n: "Cobra",
+                i: "Lagarto"
+            }, {
+                n: "Cavalo",
+                i: "Vaca"
+            }, {
+                n: "Formiga",
+                i: "Abelha"
+            }],
+            professions: [{
+                n: "Policial",
+                i: "Ladrão"
+            }, {
+                n: "Médico",
+                i: "Enfermeiro"
+            }, {
+                n: "Professor",
+                i: "Aluno"
+            }, {
+                n: "Bombeiro",
+                i: "Salva-vidas"
+            }, {
+                n: "Advogado",
+                i: "Juiz"
+            }, {
+                n: "Cantor",
+                i: "Ator"
+            }, {
+                n: "Youtuber",
+                i: "Streamer"
+            }, {
+                n: "Presidente",
+                i: "Rei"
+            }, {
+                n: "Dentista",
+                i: "Psicólogo"
+            }, {
+                n: "Piloto",
+                i: "Motorista"
+            }, {
+                n: "Chef de Cozinha",
+                i: "Garçom"
+            }, {
+                n: "Astronauta",
+                i: "Astrônomo"
+            }, {
+                n: "Mecânico",
+                i: "Eletricista"
+            }, {
+                n: "Arquiteto",
+                i: "Engenheiro"
+            }, {
+                n: "Fotógrafo",
+                i: "Pintor"
+            }, {
+                n: "Palhaço",
+                i: "Mágico"
+            }, {
+                n: "Padeiro",
+                i: "Confeiteiro"
+            }, {
+                n: "Jornalista",
+                i: "Escritor"
             }],
             questions: [
-                // Perguntas exigem respostas, o impostor recebe uma pergunta diferente ou nada
+                // Perguntas para causar confusão
                 {
                     n: "Qual sua cor favorita?",
                     i: "Qual cor você odeia?"
                 }, {
-                    n: "Onde você passou o último natal?",
-                    i: "Onde você quer passar o próximo natal?"
+                    n: "Onde foi suas últimas férias?",
+                    i: "Para onde você quer viajar?"
                 }, {
-                    n: "Qual seu animal preferido?",
-                    i: "Qual animal você tem medo?"
-                }, {
-                    n: "Qual superpoder você queria ter?",
-                    i: "Se você fosse um vilão, qual poder teria?"
+                    n: "Qual seu maior medo?",
+                    i: "O que você mais ama?"
                 }, {
                     n: "Comida que você não come de jeito nenhum?",
-                    i: "Comida que você comeria todo dia?"
+                    i: "Qual sua comida favorita?"
                 }, {
-                    n: "Profissão que você queria ter tido?",
-                    i: ""
+                    n: "Um superpoder que queria ter?",
+                    i: "Um superpoder inútil?"
                 }, {
-                    n: "Um lugar para viajar?",
-                    i: "Um lugar para morar?"
+                    n: "Se você ganhasse na loteria?",
+                    i: "Se você perdesse tudo?"
+                }, {
+                    n: "Animal mais bonito do mundo?",
+                    i: "Animal mais feio do mundo?"
+                }, {
+                    n: "Sua estação do ano preferida?",
+                    i: "A estação do ano que você odeia?"
+                }, {
+                    n: "Um filme para chorar?",
+                    i: "Um filme de comédia?"
+                }, {
+                    n: "O que você faria se fosse invisível?",
+                    i: "O que você faria se pudesse voar?"
+                }, {
+                    n: "Qual tarefa doméstica você gosta?",
+                    i: "Qual tarefa doméstica você odeia?"
+                }, {
+                    n: "Se você fosse um animal, qual seria?",
+                    i: "Qual animal você teria de estimação?"
+                }, {
+                    n: "Uma música que te deixa feliz?",
+                    i: "Uma música que te deixa triste?"
+                }, {
+                    n: "Melhor dia da semana?",
+                    i: "Pior dia da semana?"
+                }, {
+                    n: "Doce ou Salgado?",
+                    i: "Quente ou Frio?"
                 }
             ]
         };
+
+        // --- SISTEMA DE HISTÓRICO (ANTI-REPETIÇÃO) ---
+        let usedHistory = new Set();
 
         // --- VARIÁVEIS DE ESTADO ---
         let totalPlayers = 0;
@@ -439,8 +749,14 @@
         let currentWordNormal = "";
         let currentWordImpostor = "";
         let currentCategoryName = "";
+        let isModeratorMode = false;
 
-        // --- NAVEGAÇÃO E UI ---
+        // --- UI AUXILIARES ---
+        function toggleCheckbox(id) {
+            const el = document.getElementById(id);
+            el.checked = !el.checked;
+        }
+
         function showScreen(screenId) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(screenId).classList.add('active');
@@ -452,11 +768,12 @@
             document.getElementById('custom-inputs').style.display = mode === 'custom' ? 'block' : 'none';
         }
 
-        // --- LÓGICA DO JOGO ---
+        // --- LÓGICA PRINCIPAL ---
 
         function startGame() {
             const numInput = document.getElementById('num-players').value;
             totalPlayers = parseInt(numInput);
+            isModeratorMode = document.getElementById('moderator-check').checked;
 
             if (totalPlayers < 3) {
                 alert("Mínimo de 3 jogadores!");
@@ -469,32 +786,48 @@
                 const category = document.getElementById('category-select').value;
                 let pool = [];
                 let displayCat = "";
+                let tempPool = []; // Pool com metadados para controle de repetição
 
+                // 1. Montar a lista de opções possíveis
                 if (category === 'all') {
-                    // Junta todas as listas
-                    pool = [
-                        ...database.movies,
-                        ...database.games,
-                        ...database.food,
-                        ...database.places,
-                        ...database.objects,
-                        ...database.questions
-                    ];
                     displayCat = "Mistureba";
+                    for (const [key, value] of Object.entries(database)) {
+                        value.forEach((item, index) => {
+                            tempPool.push({
+                                item,
+                                id: `${key}-${index}`
+                            });
+                        });
+                    }
                 } else {
-                    pool = database[category];
                     const sel = document.getElementById('category-select');
                     displayCat = sel.options[sel.selectedIndex].text;
+                    database[category].forEach((item, index) => {
+                        tempPool.push({
+                            item,
+                            id: `${category}-${index}`
+                        });
+                    });
                 }
 
-                if (!pool || pool.length === 0) {
-                    alert("Erro ao carregar banco de dados.");
+                // 2. Filtrar o que já foi usado
+                const availablePool = tempPool.filter(obj => !usedHistory.has(obj.id));
+
+                if (availablePool.length === 0) {
+                    alert("Todas as palavras desta categoria já foram jogadas! Embaralhando novamente...");
+                    tempPool.forEach(obj => usedHistory.delete(obj.id));
+                    startGame();
                     return;
                 }
 
-                const randomPair = pool[Math.floor(Math.random() * pool.length)];
-                currentWordNormal = randomPair.n;
-                currentWordImpostor = randomPair.i;
+                // 3. Escolher aleatoriamente dos disponíveis
+                const selection = availablePool[Math.floor(Math.random() * availablePool.length)];
+
+                // 4. Marcar como usado
+                usedHistory.add(selection.id);
+
+                currentWordNormal = selection.item.n;
+                currentWordImpostor = selection.item.i;
                 currentCategoryName = displayCat;
 
             } else {
@@ -527,25 +860,22 @@
             const display = document.getElementById('secret-word-display');
             const hint = document.getElementById('impostor-hint');
 
-            // Reset visual
             display.style.color = "#e6b800";
             hint.innerText = "Memorize e não conte para ninguém.";
 
             if (currentPlayer === impostorIndex) {
-                // Lógica do Impostor
+                // Impostor
                 if (currentWordImpostor && currentWordImpostor.trim() !== "") {
-                    // Impostor recebe palavra diferente
                     display.innerText = currentWordImpostor;
                     display.style.color = "#ff5555";
                     hint.innerText = "Você é o IMPOSTOR. Sua palavra é diferente.";
                 } else {
-                    // Impostor não recebe nada
                     display.innerText = "VOCÊ É O IMPOSTOR";
                     display.style.color = "#ff5555";
-                    hint.innerText = "Você não recebeu nenhuma palavra. Finja!";
+                    hint.innerText = "Você não recebeu nenhuma palavra. Tente adivinhar o tema!";
                 }
             } else {
-                // Jogador Normal
+                // Inocente
                 display.innerText = currentWordNormal;
             }
 
@@ -555,16 +885,27 @@
         function nextPlayer() {
             currentPlayer++;
             if (currentPlayer > totalPlayers) {
-                finishSetup();
+                // Fim da distribuição
+                if (isModeratorMode) {
+                    showLeaderReveal();
+                } else {
+                    finishSetup();
+                }
             } else {
                 updatePassScreen();
                 showScreen('pass-screen');
             }
         }
 
+        function showLeaderReveal() {
+            document.getElementById('leader-impostor-id').innerText = `Jogador ${impostorIndex}`;
+            document.getElementById('leader-word-normal').innerText = currentWordNormal;
+            showScreen('leader-reveal-screen');
+        }
+
         function finishSetup() {
             document.getElementById('final-count').innerText = totalPlayers;
-            document.getElementById('category-display').innerText = "Categoria: " + currentCategoryName;
+            document.getElementById('category-display').innerText = currentCategoryName;
             showScreen('game-screen');
         }
 
