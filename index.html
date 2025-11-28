@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo do Impostor - Master Edition</title>
+    <style>
+         :root {
+            --bg-color: #1a1a1a;
+            --card-bg: #2d2d2d;
+            --text-color: #ffffff;
+            /* Amarelo mais escuro conforme solicitado */
+            --primary-color: #e6b800;
+            --primary-hover: #c9a000;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            text-align: center;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 450px;
+            background-color: var(--card-bg);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        }
+        
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+            font-size: 1.8rem;
+        }
+        
+        h2 {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            font-weight: normal;
+        }
+        
+        label {
+            display: block;
+            text-align: left;
+            margin-bottom: 5px;
+            color: #ccc;
+            font-size: 0.9rem;
+        }
+        
+        input,
+        select {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            background-color: #333;
+            color: white;
+            font-size: 1rem;
+            box-sizing: border-box;
+            outline: none;
+        }
+        
+        input:focus,
+        select:focus {
+            border-color: var(--primary-color);
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary-color);
+            color: #1a1a1a;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+        
+        button.secondary {
+            background-color: transparent;
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+        }
+        
+        button.secondary:hover {
+            background-color: rgba(230, 184, 0, 0.1);
+        }
+        
+        .screen {
+            display: none;
+        }
+        
+        .screen.active {
+            display: block;
+            animation: fadeIn 0.4s;
+        }
+        
+        .big-text {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin: 2rem 0;
+            word-wrap: break-word;
+            line-height: 1.2;
+        }
+        
+        .category-badge {
+            display: inline-block;
+            background: #444;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            color: #ccc;
+            margin-bottom: 1rem;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div id="setup-screen" class="screen active">
+            <h1>Quem é o Impostor?</h1>
+
+            <label>Número de Jogadores:</label>
+            <input type="number" id="num-players" min="3" value="4">
+
+            <label>Modo de Jogo:</label>
+            <select id="game-mode" onchange="toggleInputs()">
+                <option value="database">Banco de Dados (Automático)</option>
+                <option value="custom">Personalizado (Digitar)</option>
+            </select>
+
+            <div id="database-options">
+                <label>Categoria:</label>
+                <select id="category-select">
+                    <option value="all">🎲 Mistureba (Todas)</option>
+                    <option value="movies">🎬 Filmes & Séries</option>
+                    <option value="games">🎮 Jogos</option>
+                    <option value="food">🍔 Comidas</option>
+                    <option value="places">🌍 Lugares</option>
+                    <option value="objects">💡 Objetos & Coisas</option>
+                    <option value="questions">❓ Perguntas</option>
+                </select>
+            </div>
+
+            <div id="custom-inputs" style="display: none;">
+                <label>Palavra Comum:</label>
+                <input type="text" id="custom-word" placeholder="Ex: Praia">
+                <label>Palavra do Impostor (Opcional):</label>
+                <input type="text" id="custom-impostor" placeholder="Ex: Piscina (ou deixe vazio)">
+            </div>
+
+            <button onclick="startGame()">Iniciar Jogo</button>
+        </div>
+
+        <div id="pass-screen" class="screen">
+            <h2>Passe o celular para o</h2>
+            <div class="big-text" id="player-indicator">Jogador 1</div>
+            <p>Clique abaixo apenas quando estiver com o celular na mão.</p>
+            <button onclick="revealRole()">Ver minha palavra</button>
+        </div>
+
+        <div id="reveal-screen" class="screen">
+            <h2>Sua palavra é:</h2>
+            <div class="big-text" id="secret-word-display">???</div>
+            <p id="impostor-hint" style="font-size: 0.9rem; color: #aaa;"></p>
+            <button onclick="nextPlayer()">Esconder e Passar</button>
+        </div>
+
+        <div id="game-screen" class="screen">
+            <h1>O Jogo Começou!</h1>
+            <span id="category-display" class="category-badge">Categoria: Geral</span>
+            <p>Debatam e votem em quem é o impostor.</p>
+
+            <div style="margin-top: 2rem; padding: 1rem; background: #333; border-radius: 8px;">
+                <p>Jogadores na rodada: <strong id="final-count"></strong></p>
+            </div>
+
+            <button onclick="resetGame()" class="secondary" style="margin-top: 2rem;">Nova Rodada</button>
+        </div>
+    </div>
+
+    <script>
+        // --- BANCO DE DADOS EXPANDIDO ---
+        // Estrutura: { normal: "X", impostor: "Y" } 
+        // Se impostor for "", ele não recebe palavra (Impostor Puro).
+
+        const database = {
+            movies: [{
+                n: "Harry Potter",
+                i: "Senhor dos Anéis"
+            }, {
+                n: "Star Wars",
+                i: "Star Trek"
+            }, {
+                n: "Marvel",
+                i: "DC Comics"
+            }, {
+                n: "Batman",
+                i: "Homem de Ferro"
+            }, {
+                n: "Homem Aranha",
+                i: "Superman"
+            }, {
+                n: "Titanic",
+                i: "Avatar"
+            }, {
+                n: "Shrek",
+                i: "Toy Story"
+            }, {
+                n: "Netflix",
+                i: "Prime Video"
+            }, {
+                n: "Friends",
+                i: "How I Met Your Mother"
+            }, {
+                n: "Breaking Bad",
+                i: "Better Call Saul"
+            }, {
+                n: "Os Vingadores",
+                i: "Liga da Justiça"
+            }, {
+                n: "Naruto",
+                i: "Dragon Ball"
+            }, {
+                n: "Game of Thrones",
+                i: "House of the Dragon"
+            }],
+            games: [{
+                n: "Minecraft",
+                i: "Roblox"
+            }, {
+                n: "PlayStation",
+                i: "Xbox"
+            }, {
+                n: "League of Legends",
+                i: "Dota 2"
+            }, {
+                n: "Counter-Strike",
+                i: "Valorant"
+            }, {
+                n: "FIFA",
+                i: "PES (eFootball)"
+            }, {
+                n: "Mario",
+                i: "Sonic"
+            }, {
+                n: "Fortnite",
+                i: "PUBG"
+            }, {
+                n: "GTA V",
+                i: "Red Dead Redemption"
+            }, {
+                n: "Celular",
+                i: "PC Gamer"
+            }, {
+                n: "Among Us",
+                i: "Lobisomem"
+            }, {
+                n: "God of War",
+                i: "Devil May Cry"
+            }, {
+                n: "Free Fire",
+                i: "Call of Duty Mobile"
+            }],
+            food: [{
+                    n: "Pizza",
+                    i: "Lasanha"
+                }, {
+                    n: "Hambúrguer",
+                    i: "Cachorro Quente"
+                }, {
+                    n: "Chocolate",
+                    i: "Doce de Leite"
+                }, {
+                    n: "Coca-Cola",
+                    i: "Pepsi"
+                }, {
+                    n: "Café",
+                    i: "Chá"
+                }, {
+                    n: "Churrasco",
+                    i: ""
+                }, // Impostor não sabe o tema
+                {
+                    n: "Sushi",
+                    i: "Sashimi"
+                }, {
+                    n: "Sorvete",
+                    i: "Açaí"
+                }, {
+                    n: "Macarrão",
+                    i: "Nhoque"
+                }, {
+                    n: "Brigadeiro",
+                    i: "Beijinho"
+                }, {
+                    n: "Coxinha",
+                    i: "Pastel"
+                }, {
+                    n: "Feijoada",
+                    i: ""
+                }, {
+                    n: "Pão de Queijo",
+                    i: "Croissant"
+                }
+            ],
+            places: [{
+                n: "Praia",
+                i: "Piscina"
+            }, {
+                n: "Cinema",
+                i: "Teatro"
+            }, {
+                n: "Escola",
+                i: "Faculdade"
+            }, {
+                n: "Hospital",
+                i: "Farmácia"
+            }, {
+                n: "Shopping",
+                i: "Mercado"
+            }, {
+                n: "Academia",
+                i: "Parque"
+            }, {
+                n: "Brasil",
+                i: "Argentina"
+            }, {
+                n: "Estados Unidos",
+                i: "Inglaterra"
+            }, {
+                n: "Lua",
+                i: "Marte"
+            }, {
+                n: "Quarto",
+                i: "Sala"
+            }, {
+                n: "Banheiro",
+                i: "Cozinha"
+            }, {
+                n: "Paris",
+                i: "Londres"
+            }],
+            objects: [{
+                n: "Violão",
+                i: "Guitarra"
+            }, {
+                n: "Lápis",
+                i: "Caneta"
+            }, {
+                n: "Copo",
+                i: "Taça"
+            }, {
+                n: "Notebook",
+                i: "Tablet"
+            }, {
+                n: "Tênis",
+                i: "Chinelo"
+            }, {
+                n: "Relógio",
+                i: "Pulseira"
+            }, {
+                n: "Ouro",
+                i: "Prata"
+            }, {
+                n: "Sol",
+                i: "Lua"
+            }, {
+                n: "Cadeira",
+                i: "Sofá"
+            }, {
+                n: "Carro",
+                i: "Moto"
+            }, {
+                n: "Avião",
+                i: "Helicóptero"
+            }],
+            questions: [
+                // Perguntas exigem respostas, o impostor recebe uma pergunta diferente ou nada
+                {
+                    n: "Qual sua cor favorita?",
+                    i: "Qual cor você odeia?"
+                }, {
+                    n: "Onde você passou o último natal?",
+                    i: "Onde você quer passar o próximo natal?"
+                }, {
+                    n: "Qual seu animal preferido?",
+                    i: "Qual animal você tem medo?"
+                }, {
+                    n: "Qual superpoder você queria ter?",
+                    i: "Se você fosse um vilão, qual poder teria?"
+                }, {
+                    n: "Comida que você não come de jeito nenhum?",
+                    i: "Comida que você comeria todo dia?"
+                }, {
+                    n: "Profissão que você queria ter tido?",
+                    i: ""
+                }, {
+                    n: "Um lugar para viajar?",
+                    i: "Um lugar para morar?"
+                }
+            ]
+        };
+
+        // --- VARIÁVEIS DE ESTADO ---
+        let totalPlayers = 0;
+        let impostorIndex = 0;
+        let currentPlayer = 1;
+        let currentWordNormal = "";
+        let currentWordImpostor = "";
+        let currentCategoryName = "";
+
+        // --- NAVEGAÇÃO E UI ---
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function toggleInputs() {
+            const mode = document.getElementById('game-mode').value;
+            document.getElementById('database-options').style.display = mode === 'database' ? 'block' : 'none';
+            document.getElementById('custom-inputs').style.display = mode === 'custom' ? 'block' : 'none';
+        }
+
+        // --- LÓGICA DO JOGO ---
+
+        function startGame() {
+            const numInput = document.getElementById('num-players').value;
+            totalPlayers = parseInt(numInput);
+
+            if (totalPlayers < 3) {
+                alert("Mínimo de 3 jogadores!");
+                return;
+            }
+
+            const mode = document.getElementById('game-mode').value;
+
+            if (mode === 'database') {
+                const category = document.getElementById('category-select').value;
+                let pool = [];
+                let displayCat = "";
+
+                if (category === 'all') {
+                    // Junta todas as listas
+                    pool = [
+                        ...database.movies,
+                        ...database.games,
+                        ...database.food,
+                        ...database.places,
+                        ...database.objects,
+                        ...database.questions
+                    ];
+                    displayCat = "Mistureba";
+                } else {
+                    pool = database[category];
+                    const sel = document.getElementById('category-select');
+                    displayCat = sel.options[sel.selectedIndex].text;
+                }
+
+                if (!pool || pool.length === 0) {
+                    alert("Erro ao carregar banco de dados.");
+                    return;
+                }
+
+                const randomPair = pool[Math.floor(Math.random() * pool.length)];
+                currentWordNormal = randomPair.n;
+                currentWordImpostor = randomPair.i;
+                currentCategoryName = displayCat;
+
+            } else {
+                // Modo Customizado
+                const wNormal = document.getElementById('custom-word').value;
+                const wImpostor = document.getElementById('custom-impostor').value;
+
+                if (!wNormal) {
+                    alert("Digite a palavra comum!");
+                    return;
+                }
+                currentWordNormal = wNormal;
+                currentWordImpostor = wImpostor;
+                currentCategoryName = "Personalizado";
+            }
+
+            // Sorteia o impostor
+            impostorIndex = Math.floor(Math.random() * totalPlayers) + 1;
+
+            currentPlayer = 1;
+            updatePassScreen();
+            showScreen('pass-screen');
+        }
+
+        function updatePassScreen() {
+            document.getElementById('player-indicator').innerText = `Jogador ${currentPlayer}`;
+        }
+
+        function revealRole() {
+            const display = document.getElementById('secret-word-display');
+            const hint = document.getElementById('impostor-hint');
+
+            // Reset visual
+            display.style.color = "#e6b800";
+            hint.innerText = "Memorize e não conte para ninguém.";
+
+            if (currentPlayer === impostorIndex) {
+                // Lógica do Impostor
+                if (currentWordImpostor && currentWordImpostor.trim() !== "") {
+                    // Impostor recebe palavra diferente
+                    display.innerText = currentWordImpostor;
+                    display.style.color = "#ff5555";
+                    hint.innerText = "Você é o IMPOSTOR. Sua palavra é diferente.";
+                } else {
+                    // Impostor não recebe nada
+                    display.innerText = "VOCÊ É O IMPOSTOR";
+                    display.style.color = "#ff5555";
+                    hint.innerText = "Você não recebeu nenhuma palavra. Finja!";
+                }
+            } else {
+                // Jogador Normal
+                display.innerText = currentWordNormal;
+            }
+
+            showScreen('reveal-screen');
+        }
+
+        function nextPlayer() {
+            currentPlayer++;
+            if (currentPlayer > totalPlayers) {
+                finishSetup();
+            } else {
+                updatePassScreen();
+                showScreen('pass-screen');
+            }
+        }
+
+        function finishSetup() {
+            document.getElementById('final-count').innerText = totalPlayers;
+            document.getElementById('category-display').innerText = "Categoria: " + currentCategoryName;
+            showScreen('game-screen');
+        }
+
+        function resetGame() {
+            document.getElementById('custom-word').value = "";
+            document.getElementById('custom-impostor').value = "";
+            showScreen('setup-screen');
+        }
+    </script>
+</body>
+
+</html>
