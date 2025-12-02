@@ -4,15 +4,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jogo do Impostor - Ultimate Expanded</title>
+    <title>Jogo do Impostor - Ultimate</title>
     <script src="database.js"></script>
     <style>
          :root {
             --bg-color: #1a1a1a;
             --card-bg: #2d2d2d;
             --text-color: #ffffff;
-            /* Amarelo Escuro Solicitado */
-            --primary-color: #e6b800;
+            /* PREFERÊNCIA DE USUÁRIO: Amarelo Escuro mantido */
+            --primary-color: #e6b800; 
             --primary-hover: #c9a000;
             --danger-color: #ff5555;
             --success-color: #4caf50;
@@ -75,13 +75,19 @@
             outline: none;
         }
         
+        /* Estilo da Caixa de Seleção Melhorada */
+        .checkbox-wrapper {
+            background: #333;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: left;
+            border: 1px solid #444;
+        }
+
         .checkbox-container {
             display: flex;
             align-items: center;
-            margin-bottom: 20px;
-            background: #333;
-            padding: 10px;
-            border-radius: 8px;
             cursor: pointer;
         }
         
@@ -90,11 +96,21 @@
             margin: 0 10px 0 0;
             transform: scale(1.3);
             cursor: pointer;
+            accent-color: var(--primary-color);
         }
         
         .checkbox-container span {
-            font-size: 0.9rem;
+            font-size: 1rem;
             color: #fff;
+            font-weight: bold;
+        }
+
+        .small-desc {
+            display: block;
+            font-size: 0.8rem;
+            color: #aaa;
+            margin-top: 5px;
+            margin-left: 26px; /* Alinhado com o texto do checkbox */
         }
         
         button {
@@ -127,6 +143,19 @@
         
         button.secondary:hover {
             background-color: rgba(230, 184, 0, 0.1);
+        }
+
+        button.danger-btn {
+            background-color: transparent;
+            border: 1px solid #555;
+            color: #777;
+            font-size: 0.8rem;
+            padding: 8px;
+            margin-top: 20px;
+        }
+        button.danger-btn:hover {
+            border-color: var(--danger-color);
+            color: var(--danger-color);
         }
         
         .screen {
@@ -192,6 +221,7 @@
                 <label>Categoria:</label>
                 <select id="category-select">
                     <option value="all">🎲 Mistureba (Todas)</option>
+                    <option value="questions">❓ Perguntas (Novo!)</option>
                     <option value="movies">🎬 Filmes & Séries</option>
                     <option value="games">🎮 Jogos</option>
                     <option value="food">🍔 Comidas</option>
@@ -200,7 +230,6 @@
                     <option value="brands">🏷️ Marcas</option>
                     <option value="nature">🌿 Natureza</option>
                     <option value="professions">💼 Profissões</option>
-                    <option value="questions">❓ Perguntas</option>
                 </select>
             </div>
 
@@ -211,12 +240,17 @@
                 <input type="text" id="custom-impostor" placeholder="Ex: Piscina (ou deixe vazio)">
             </div>
 
-            <div class="checkbox-container" onclick="toggleCheckbox('moderator-check')">
-                <input type="checkbox" id="moderator-check">
-                <span>Modo Moderador (Líder vê o impostor no final)</span>
+            <div class="checkbox-wrapper" onclick="toggleCheckbox('moderator-check')">
+                <div class="checkbox-container">
+                    <input type="checkbox" id="moderator-check">
+                    <span>Narrador descobre o impostor?</span>
+                </div>
+                <small class="small-desc">Se marcado, o celular volta pra você e revela quem é. Se desmarcado, ninguém sabe.</small>
             </div>
 
             <button onclick="startGame()">Iniciar Jogo</button>
+            
+            <button onclick="clearHistory()" class="danger-btn">Limpar Histórico de Perguntas</button>
         </div>
 
         <div id="pass-screen" class="screen">
@@ -227,14 +261,14 @@
         </div>
 
         <div id="reveal-screen" class="screen">
-            <h2>Sua palavra é:</h2>
+            <h2>Sua palavra/papel é:</h2>
             <div class="big-text" id="secret-word-display">???</div>
             <p id="impostor-hint" style="font-size: 0.9rem; color: #aaa;"></p>
             <button onclick="nextPlayer()">Esconder e Passar</button>
         </div>
 
         <div id="leader-reveal-screen" class="screen">
-            <h2 style="color: var(--primary-color);">Tela do Líder</h2>
+            <h2 style="color: var(--primary-color);">Tela do Narrador</h2>
             <p>Pegue o celular de volta. O jogo está configurado.</p>
 
             <div class="secret-reveal">
@@ -266,8 +300,9 @@
     </div>
 
     <script>
-        // --- SISTEMA DE HISTÓRICO ---
-        let usedHistory = new Set();
+        // --- SISTEMA DE HISTÓRICO PERSISTENTE ---
+        // Carrega do LocalStorage ou cria novo se não existir
+        let usedHistory = new Set(JSON.parse(localStorage.getItem('impostorHistory')) || []);
         let lastImpostor = -1;
 
         // --- VARIÁVEIS DE ESTADO ---
@@ -279,9 +314,26 @@
         let currentCategoryName = "";
         let isModeratorMode = false;
 
+        function saveHistory() {
+            // Salva o Set como Array no navegador
+            localStorage.setItem('impostorHistory', JSON.stringify([...usedHistory]));
+        }
+
+        function clearHistory() {
+            if(confirm("Deseja esquecer todas as palavras já usadas? Isso pode fazer perguntas repetidas aparecerem.")) {
+                usedHistory.clear();
+                localStorage.removeItem('impostorHistory');
+                alert("Histórico limpo!");
+            }
+        }
+
         function toggleCheckbox(id) {
+            // Previne duplo clique se clicar direto no input
             const el = document.getElementById(id);
-            el.checked = !el.checked;
+            // Pequeno hack para garantir que o clique na div funcione bem com o input
+            if (event.target !== el) {
+                el.checked = !el.checked;
+            }
         }
 
         function showScreen(screenId) {
@@ -316,6 +368,7 @@
                 const category = document.getElementById('category-select').value;
                 let tempPool = [];
 
+                // Monta a lista de possibilidades
                 if (category === 'all') {
                     for (const [key, value] of Object.entries(database)) {
                         value.forEach((item, index) => {
@@ -336,18 +389,32 @@
                     return;
                 }
 
-                // Filtro de Histórico
-                const availablePool = tempPool.filter(obj => !usedHistory.has(obj.id));
+                // --- LÓGICA DE NÃO REPETIÇÃO ---
+                // Filtra apenas o que não foi usado
+                let availablePool = tempPool.filter(obj => !usedHistory.has(obj.id));
 
+                // Se acabaram as palavras dessa categoria, reseta o histórico dela
                 if (availablePool.length === 0) {
-                    tempPool.forEach(obj => usedHistory.delete(obj.id));
-                    startGame(); 
-                    return;
+                    // Remove do histórico apenas os IDs que pertencem a essa seleção para recomeçar
+                    // (Simplificado: Reseta se for categoria especifica ou avisa no mistureba)
+                    if (confirm("Todas as palavras desta categoria já foram usadas! Deseja repetir?")) {
+                        // Limpa histórico localmente para os itens atuais
+                        tempPool.forEach(obj => usedHistory.delete(obj.id));
+                        saveHistory();
+                        startGame(); // Tenta de novo
+                        return;
+                    } else {
+                        return; // Cancela start
+                    }
                 }
 
+                // Sorteia uma das disponíveis
                 const selection = availablePool[Math.floor(Math.random() * availablePool.length)];
 
+                // Salva no histórico
                 usedHistory.add(selection.id);
+                saveHistory();
+
                 currentWordNormal = selection.item.n;
                 currentWordImpostor = selection.item.i;
 
@@ -364,7 +431,7 @@
                 currentCategoryName = "Personalizado";
             }
 
-            // Sorteio do Impostor (Sem Repetição Imediata)
+            // Sorteio do Impostor (Tenta não repetir o mesmo jogador da rodada anterior)
             let newImpostor;
             let attempts = 0;
             do {
@@ -388,7 +455,8 @@
             const display = document.getElementById('secret-word-display');
             const hint = document.getElementById('impostor-hint');
 
-            display.style.color = "#e6b800"; // Amarelo Escuro
+            // Amarelo Escuro Solicitado
+            display.style.color = "#e6b800"; 
             hint.innerText = "Memorize e não conte para ninguém.";
 
             if (currentPlayer === impostorIndex) {
@@ -411,10 +479,11 @@
         function nextPlayer() {
             currentPlayer++;
             if (currentPlayer > totalPlayers) {
+                // AQUI ESTÁ A LÓGICA DO "NÃO SABER O IMPOSTOR"
                 if (isModeratorMode) {
                     showLeaderReveal();
                 } else {
-                    finishSetup();
+                    finishSetup(); // Pula direto para o jogo, ninguém sabe quem é
                 }
             } else {
                 updatePassScreen();
